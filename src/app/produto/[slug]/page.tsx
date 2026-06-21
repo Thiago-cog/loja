@@ -25,6 +25,7 @@ export default async function ProductPage({ params }: Props) {
         imageUrl={product.imageUrl}
         images={product.images ? product.images.split("\n").map((s) => s.trim()).filter(Boolean) : []}
         sizes={product.sizes ? product.sizes.split(",").map((s) => s.trim()).filter(Boolean) : []}
+        models={product.models ? product.models.split(",").map((s) => s.trim()).filter(Boolean) : []}
       />
     </div>
   );

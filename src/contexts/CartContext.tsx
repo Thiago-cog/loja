@@ -8,6 +8,7 @@ export type CartItem = {
   price: number;
   imageUrl: string;
   size: string;
+  model: string;
   quantity: number;
 };
 
@@ -25,8 +26,8 @@ type CartContextType = {
   setIsOpen: (open: boolean) => void;
 };
 
-function cartKey(id: string, size: string) {
-  return `${id}__${size}`;
+function cartKey(id: string, size: string, model: string) {
+  return `${id}__${size}__${model}`;
 }
 
 const CartContext = createContext<CartContextType | null>(null);
@@ -35,7 +36,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => {
     if (typeof window === "undefined") return [];
     const stored = localStorage.getItem("cart");
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    const parsed = JSON.parse(stored) as CartItem[];
+    return parsed.map((i) => ({ ...i, model: i.model ?? "" }));
   });
   const [isOpen, setIsOpen] = useState(false);
 
@@ -45,23 +48,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   function addItem(item: AddItemPayload) {
     const qty = item.quantity ?? 1;
+    const model = item.model ?? "";
     setItems((prev) => {
-      const key = cartKey(item.id, item.size);
-      const existing = prev.find((i) => cartKey(i.id, i.size) === key);
+      const key = cartKey(item.id, item.size, model);
+      const existing = prev.find((i) => cartKey(i.id, i.size, i.model) === key);
       if (existing) {
         return prev.map((i) =>
-          cartKey(i.id, i.size) === key
+          cartKey(i.id, i.size, i.model) === key
             ? { ...i, quantity: i.quantity + qty }
             : i
         );
       }
-      return [...prev, { ...item, quantity: qty }];
+      return [...prev, { ...item, model, quantity: qty }];
     });
     setIsOpen(true);
   }
 
   function removeItem(key: string) {
-    setItems((prev) => prev.filter((i) => cartKey(i.id, i.size) !== key));
+    setItems((prev) => prev.filter((i) => cartKey(i.id, i.size, i.model) !== key));
   }
 
   function updateQuantity(key: string, quantity: number) {
@@ -70,7 +74,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
     setItems((prev) =>
-      prev.map((i) => (cartKey(i.id, i.size) === key ? { ...i, quantity } : i))
+      prev.map((i) => (cartKey(i.id, i.size, i.model) === key ? { ...i, quantity } : i))
     );
   }
 

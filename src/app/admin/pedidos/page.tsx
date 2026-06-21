@@ -8,6 +8,7 @@ type OrderItem = {
   id: string;
   name: string;
   size: string;
+  model: string;
   quantity: number;
   price: number;
 };
@@ -169,7 +170,7 @@ export default function OrdersPage() {
                     {order.items.map((item) => (
                       <div key={item.id} className="flex justify-between text-sm">
                         <span className="text-gray-600">
-                          {item.quantity}x {item.name} — Tam: {item.size}
+                          {item.quantity}x {item.name}{item.model ? ` - ${item.model}` : ""} — Tam: {item.size}
                         </span>
                         <span className="font-medium">
                           R$ {(item.price * item.quantity).toFixed(2)}

@@ -30,12 +30,14 @@ export async function POST(request: NextRequest) {
             id: string;
             name: string;
             size: string;
+            model?: string;
             quantity: number;
             price: number;
           }) => ({
             productId: item.id,
             name: item.name,
             size: item.size,
+            model: item.model || "",
             quantity: item.quantity,
             price: item.price,
           })
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
     body: {
       items: order.items.map((item) => ({
         id: item.id,
-        title: `${item.name} - Tam: ${item.size}`,
+        title: `${item.name}${item.model ? ` - ${item.model}` : ""} - Tam: ${item.size}`,
         quantity: item.quantity,
         unit_price: item.price,
         currency_id: "BRL",

@@ -13,11 +13,12 @@ type Product = {
   imageUrl: string;
   images: string;
   sizes: string;
+  models: string;
   position: number;
   active: boolean;
 };
 
-const emptyForm = { name: "", description: "", price: "", imageUrl: "", images: "", sizes: "" };
+const emptyForm = { name: "", description: "", price: "", imageUrl: "", images: "", sizes: "", models: "" };
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -101,6 +102,7 @@ export default function AdminDashboard() {
       imageUrl: product.imageUrl,
       images: product.images,
       sizes: product.sizes,
+      models: product.models,
     });
     setEditingId(product.id);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -229,18 +231,33 @@ export default function AdminDashboard() {
               placeholder={"https://exemplo.com/foto2.jpg\nhttps://exemplo.com/foto3.jpg"}
             />
           </div>
-          <div>
-            <label htmlFor="sizes" className="block text-sm font-medium text-gray-700 mb-1">
-              Tamanhos (separados por vírgula, deixe vazio se não se aplica)
-            </label>
-            <input
-              id="sizes"
-              type="text"
-              value={form.sizes}
-              onChange={(e) => setForm({ ...form, sizes: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
-              placeholder="PP,P,M,G,GG,XG (opcional)"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="sizes" className="block text-sm font-medium text-gray-700 mb-1">
+                Tamanhos (separados por vírgula, opcional)
+              </label>
+              <input
+                id="sizes"
+                type="text"
+                value={form.sizes}
+                onChange={(e) => setForm({ ...form, sizes: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                placeholder="PP,P,M,G,GG,XG"
+              />
+            </div>
+            <div>
+              <label htmlFor="models" className="block text-sm font-medium text-gray-700 mb-1">
+                Modelos (separados por vírgula, opcional)
+              </label>
+              <input
+                id="models"
+                type="text"
+                value={form.models}
+                onChange={(e) => setForm({ ...form, models: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                placeholder="Baby Look,T-Shirt"
+              />
+            </div>
           </div>
           <div className="flex gap-3">
             <button

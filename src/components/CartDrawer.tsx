@@ -64,6 +64,7 @@ export function CartDrawer() {
           id: i.id,
           name: i.name,
           size: i.size,
+          model: i.model,
           quantity: i.quantity,
           price: i.price,
         })),
@@ -169,9 +170,9 @@ export function CartDrawer() {
                 </h3>
                 <div className="space-y-3">
                   {items.map((item) => (
-                    <div key={`${item.id}__${item.size}`} className="flex justify-between text-sm">
+                    <div key={`${item.id}__${item.size}__${item.model}`} className="flex justify-between text-sm">
                       <span className="text-gray-600">
-                        {item.quantity}x {item.name}{item.size !== "Único" ? ` (${item.size})` : ""}
+                        {item.quantity}x {item.name}{item.model ? ` - ${item.model}` : ""}{item.size !== "Único" ? ` (${item.size})` : ""}
                       </span>
                       <span className="font-medium">
                         R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}
@@ -212,7 +213,7 @@ export function CartDrawer() {
           <>
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
               {items.map((item) => {
-                const key = `${item.id}__${item.size}`;
+                const key = `${item.id}__${item.size}__${item.model}`;
                 return (
                   <div key={key} className="flex gap-4">
                     <div className="relative w-20 h-24 rounded-sm overflow-hidden bg-gray-50 flex-shrink-0">
@@ -228,6 +229,11 @@ export function CartDrawer() {
                         <h3 className="text-sm font-medium text-gray-900 truncate">
                           {item.name}
                         </h3>
+                        {item.model && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            Modelo: {item.model}
+                          </p>
+                        )}
                         {item.size !== "Único" && (
                           <p className="text-xs text-gray-400 mt-0.5">
                             Tam: {item.size}

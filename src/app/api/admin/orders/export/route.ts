@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   });
 
   const BOM = "﻿";
-  const header = "Pedido;Data;Cliente;Telefone;Produto;Tamanho;Quantidade;Preço Unit.;Subtotal;Total Pedido;Status;Pagamento";
+  const header = "Pedido;Data;Cliente;Telefone;Produto;Modelo;Tamanho;Quantidade;Preço Unit.;Subtotal;Total Pedido;Status;Pagamento";
   const rows = orders.flatMap((order) =>
     order.items.map((item) =>
       [
@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
         `"${order.customerName}"`,
         order.customerPhone,
         `"${item.name}"`,
+        item.model || "",
         item.size,
         item.quantity,
         item.price.toFixed(2).replace(".", ","),

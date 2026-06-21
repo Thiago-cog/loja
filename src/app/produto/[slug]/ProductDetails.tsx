@@ -13,12 +13,14 @@ type Props = {
   imageUrl: string;
   images: string[];
   sizes: string[];
+  models: string[];
 };
 
-export function ProductDetails({ id, name, description, price, imageUrl, images, sizes }: Props) {
+export function ProductDetails({ id, name, description, price, imageUrl, images, sizes, models }: Props) {
   const allImages = [imageUrl, ...images];
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState("");
   const [added, setAdded] = useState(false);
@@ -41,8 +43,12 @@ export function ProductDetails({ id, name, description, price, imageUrl, images,
       setError("Selecione um tamanho");
       return;
     }
+    if (models.length > 0 && !selectedModel) {
+      setError("Selecione um modelo");
+      return;
+    }
     setError("");
-    addItem({ id, name, price, imageUrl, size: selectedSize || "Único", quantity });
+    addItem({ id, name, price, imageUrl, size: selectedSize || "Único", model: selectedModel || "", quantity });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
     setQuantity(1);
@@ -116,6 +122,32 @@ export function ProductDetails({ id, name, description, price, imageUrl, images,
 
           <p className="text-sm text-gray-500 mt-6 leading-relaxed">{description}</p>
 
+          {models.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
+              Modelo
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {models.map((model) => (
+                <button
+                  key={model}
+                  onClick={() => {
+                    setSelectedModel(model);
+                    setError("");
+                  }}
+                  className={`min-w-[48px] h-11 px-3 border text-sm font-medium transition-all cursor-pointer ${
+                    selectedModel === model
+                      ? "border-black bg-black text-white"
+                      : "border-gray-200 text-gray-700 hover:border-black"
+                  }`}
+                >
+                  {model}
+                </button>
+              ))}
+            </div>
+          </div>
+          )}
+
           {sizes.length > 0 && (
           <div className="mt-8">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
@@ -139,9 +171,10 @@ export function ProductDetails({ id, name, description, price, imageUrl, images,
                 </button>
               ))}
             </div>
-            {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
           </div>
           )}
+
+          {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
 
           <div className="mt-6">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">

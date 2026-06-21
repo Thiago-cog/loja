@@ -46,12 +46,12 @@ export function ProductDetails({ id, name, description, price, imageUrl, sizes }
       </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
-        <div className="relative aspect-[3/4] bg-gray-50 overflow-hidden rounded-sm">
+        <div className="relative aspect-square bg-white overflow-hidden rounded-sm border border-gray-100">
           <Image
             src={imageUrl}
             alt={name}
             fill
-            className="object-cover"
+            className="object-contain p-6"
             sizes="(max-width: 768px) 100vw, 50vw"
             priority
           />

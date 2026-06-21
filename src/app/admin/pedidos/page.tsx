@@ -19,6 +19,7 @@ type Order = {
   status: string;
   paymentStatus: string;
   paymentId: string | null;
+  checkoutUrl: string | null;
   total: number;
   createdAt: string;
   items: OrderItem[];
@@ -176,6 +177,30 @@ export default function OrdersPage() {
                       </div>
                     ))}
                   </div>
+                  {order.checkoutUrl && order.paymentStatus === "pendente" && (
+                    <div className="flex items-center gap-2 pt-3 border-t border-gray-100 mb-3">
+                      <span className="text-xs text-gray-500 mr-1">Link de pagamento:</span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(order.checkoutUrl!);
+                          alert("Link copiado!");
+                        }}
+                        className="text-xs px-3 py-1.5 rounded-sm bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
+                      >
+                        Copiar link
+                      </button>
+                      <a
+                        href={`https://wa.me/55${order.customerPhone}?text=${encodeURIComponent(
+                          `Olá ${order.customerName}! Segue o link para pagamento do seu pedido na Pibam Loja (R$ ${order.total.toFixed(2)}):\n${order.checkoutUrl}`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs px-3 py-1.5 rounded-sm bg-green-100 text-green-700 hover:bg-green-200"
+                      >
+                        Enviar via WhatsApp
+                      </a>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
                     <span className="text-xs text-gray-500 mr-2">Status:</span>
                     {STATUS_OPTIONS.map((s) => (

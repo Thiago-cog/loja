@@ -71,8 +71,15 @@ export async function POST(request: NextRequest) {
     },
   });
 
+  const checkoutUrl = pref.init_point!;
+
+  await prisma.order.update({
+    where: { id: order.id },
+    data: { checkoutUrl },
+  });
+
   return NextResponse.json({
     orderId: order.id,
-    checkoutUrl: pref.init_point,
+    checkoutUrl,
   }, { status: 201 });
 }

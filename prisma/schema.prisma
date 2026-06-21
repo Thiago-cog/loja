@@ -27,6 +27,7 @@ model Order {
   status        String      @default("pendente")
   paymentStatus String      @default("pendente")
   paymentId     String?
+  checkoutUrl   String?
   total         Float
   createdAt     DateTime    @default(now())
   items         OrderItem[]

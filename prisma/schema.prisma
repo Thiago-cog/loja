@@ -7,13 +7,25 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String
+  password  String
+  createdAt DateTime @default(now())
+}
+
 model Product {
   id          String      @id @default(cuid())
   name        String
+  slug        String      @unique @default("")
   description String
   price       Float
   imageUrl    String
-  sizes       String      @default("PP,P,M,G,GG,XG")
+  images      String      @default("")
+  sizes       String      @default("")
+  position    Int         @default(0)
   active      Boolean     @default(true)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt

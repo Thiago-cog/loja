@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { generateSlug } from "@/lib/slug";
 
 export async function GET() {
   if (!(await verifySession())) {
@@ -9,7 +10,7 @@ export async function GET() {
 
   try {
     const products = await prisma.product.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ position: "asc" }, { createdAt: "desc" }],
     });
     return NextResponse.json(products);
   } catch {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { name, description, price, imageUrl, sizes } = body;
+  const { name, description, price, imageUrl, images, sizes } = body;
 
   if (!name || !description || price == null || !imageUrl) {
     return NextResponse.json(
@@ -32,12 +33,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  let slug = generateSlug(name);
+  const existing = await prisma.product.findUnique({ where: { slug } });
+  if (existing) {
+    slug = `${slug}-${Date.now()}`;
+  }
+
   const product = await prisma.product.create({
     data: {
       name,
+      slug,
       description,
       price: Number(price),
       imageUrl,
+      ...(images !== undefined && { images }),
       ...(sizes && { sizes }),
     },
   });

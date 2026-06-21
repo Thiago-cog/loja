@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useCart } from "@/contexts/CartContext";
+import { useUser } from "@/contexts/UserContext";
 import Image from "next/image";
 
 type Step = "cart" | "checkout" | "success";
@@ -9,9 +10,18 @@ type Step = "cart" | "checkout" | "success";
 export function CartDrawer() {
   const { items, removeItem, updateQuantity, clearCart, totalPrice, isOpen, setIsOpen } =
     useCart();
+  const { user } = useUser();
   const [step, setStep] = useState<Step>("cart");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+
+  function handleGoToCheckout() {
+    if (user) {
+      setName((prev) => prev || user.name);
+      setPhone((prev) => prev || formatPhone(user.phone));
+    }
+    setStep("checkout");
+  }
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
 
@@ -161,10 +171,10 @@ export function CartDrawer() {
                   {items.map((item) => (
                     <div key={`${item.id}__${item.size}`} className="flex justify-between text-sm">
                       <span className="text-gray-600">
-                        {item.quantity}x {item.name} ({item.size})
+                        {item.quantity}x {item.name}{item.size !== "Único" ? ` (${item.size})` : ""}
                       </span>
                       <span className="font-medium">
-                        R$ {(item.price * item.quantity).toFixed(2)}
+                        R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}
                       </span>
                     </div>
                   ))}
@@ -174,7 +184,7 @@ export function CartDrawer() {
             <div className="border-t border-gray-100 px-6 py-5 space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">Total</span>
-                <span className="text-xl font-bold">R$ {totalPrice.toFixed(2)}</span>
+                <span className="text-xl font-bold">R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
               </div>
               <button
                 onClick={handleSubmitOrder}
@@ -218,9 +228,11 @@ export function CartDrawer() {
                         <h3 className="text-sm font-medium text-gray-900 truncate">
                           {item.name}
                         </h3>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          Tam: {item.size}
-                        </p>
+                        {item.size !== "Único" && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            Tam: {item.size}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center border border-gray-200 rounded-sm">
@@ -242,7 +254,7 @@ export function CartDrawer() {
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-sm font-bold">
-                            R$ {(item.price * item.quantity).toFixed(2)}
+                            R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}
                           </span>
                           <button
                             onClick={() => removeItem(key)}
@@ -262,10 +274,10 @@ export function CartDrawer() {
             <div className="border-t border-gray-100 px-6 py-5 space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">Total</span>
-                <span className="text-xl font-bold">R$ {totalPrice.toFixed(2)}</span>
+                <span className="text-xl font-bold">R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
               </div>
               <button
-                onClick={() => setStep("checkout")}
+                onClick={handleGoToCheckout}
                 className="w-full py-4 bg-black text-white text-sm font-bold uppercase tracking-wider hover:bg-gray-900 transition-colors cursor-pointer"
               >
                 Fechar pedido

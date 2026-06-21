@@ -11,11 +11,13 @@ type Product = {
   description: string;
   price: number;
   imageUrl: string;
+  images: string;
   sizes: string;
+  position: number;
   active: boolean;
 };
 
-const emptyForm = { name: "", description: "", price: "", imageUrl: "", sizes: "PP,P,M,G,GG,XG" };
+const emptyForm = { name: "", description: "", price: "", imageUrl: "", images: "", sizes: "" };
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -97,10 +99,24 @@ export default function AdminDashboard() {
       description: product.description,
       price: product.price.toString(),
       imageUrl: product.imageUrl,
+      images: product.images,
       sizes: product.sizes,
     });
     setEditingId(product.id);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function handleMove(index: number, direction: "up" | "down") {
+    const newProducts = [...products];
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newProducts.length) return;
+    [newProducts[index], newProducts[targetIndex]] = [newProducts[targetIndex], newProducts[index]];
+    setProducts(newProducts);
+    await fetch("/api/admin/products/reorder", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderedIds: newProducts.map((p) => p.id) }),
+    });
   }
 
   async function handleLogout() {
@@ -201,8 +217,21 @@ export default function AdminDashboard() {
             />
           </div>
           <div>
+            <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-1">
+              Fotos extras (uma URL por linha)
+            </label>
+            <textarea
+              id="images"
+              value={form.images}
+              onChange={(e) => setForm({ ...form, images: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+              placeholder={"https://exemplo.com/foto2.jpg\nhttps://exemplo.com/foto3.jpg"}
+            />
+          </div>
+          <div>
             <label htmlFor="sizes" className="block text-sm font-medium text-gray-700 mb-1">
-              Tamanhos (separados por vírgula)
+              Tamanhos (separados por vírgula, deixe vazio se não se aplica)
             </label>
             <input
               id="sizes"
@@ -210,8 +239,7 @@ export default function AdminDashboard() {
               value={form.sizes}
               onChange={(e) => setForm({ ...form, sizes: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
-              placeholder="PP,P,M,G,GG,XG"
-              required
+              placeholder="PP,P,M,G,GG,XG (opcional)"
             />
           </div>
           <div className="flex gap-3">
@@ -254,11 +282,31 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {products.map((product) => (
+            {products.map((product, index) => (
               <div
                 key={product.id}
                 className="p-4 flex items-center gap-4 hover:bg-gray-50"
               >
+                <div className="flex flex-col gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => handleMove(index, "up")}
+                    disabled={index === 0}
+                    className="text-gray-400 hover:text-black disabled:opacity-20 cursor-pointer disabled:cursor-default"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => handleMove(index, "down")}
+                    disabled={index === products.length - 1}
+                    className="text-gray-400 hover:text-black disabled:opacity-20 cursor-pointer disabled:cursor-default"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                    </svg>
+                  </button>
+                </div>
                 <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                   <Image
                     src={product.imageUrl}

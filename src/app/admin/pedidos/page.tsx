@@ -191,7 +191,7 @@ export default function OrdersPage() {
                       </button>
                       <a
                         href={`https://wa.me/55${order.customerPhone}?text=${encodeURIComponent(
-                          `Olá ${order.customerName}! Segue o link para pagamento do seu pedido na Pibam Loja (R$ ${order.total.toFixed(2)}):\n${order.checkoutUrl}`
+                          `Olá ${order.customerName}! Segue o link para pagamento do seu pedido na Alive Store (R$ ${order.total.toFixed(2)}):\n${order.checkoutUrl}`
                         )}`}
                         target="_blank"
                         rel="noopener noreferrer"

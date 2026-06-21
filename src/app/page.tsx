@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/ProductCard";
 import { HeroBanner } from "@/components/HeroBanner";
+import Image from "next/image";
+import Link from "next/link";
 import type { Product } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +12,7 @@ export default async function Home() {
   try {
     products = await prisma.product.findMany({
       where: { active: true },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ position: "asc" }, { createdAt: "desc" }],
     });
   } catch {
     // banco não configurado ainda
@@ -37,7 +39,7 @@ export default async function Home() {
             {products.map((product) => (
               <ProductCard
                 key={product.id}
-                id={product.id}
+                slug={product.slug}
                 name={product.name}
                 price={product.price}
                 imageUrl={product.imageUrl}
@@ -45,6 +47,18 @@ export default async function Home() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        <Link href="/produto/sorteio" className="block">
+          <Image
+            src="/SORTEIO.png"
+            alt="Participe do nosso sorteio"
+            width={1920}
+            height={400}
+            className="w-full h-auto rounded-sm hover:opacity-95 transition-opacity"
+          />
+        </Link>
       </section>
     </>
   );

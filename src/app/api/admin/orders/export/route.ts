@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="pedidos-pibam-${new Date().toISOString().split("T")[0]}.csv"`,
+      "Content-Disposition": `attachment; filename="pedidos-alive-store-${new Date().toISOString().split("T")[0]}.csv"`,
     },
   });
 }

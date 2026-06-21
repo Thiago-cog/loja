@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   });
 
   const BOM = "﻿";
-  const header = "Pedido,Data,Cliente,Telefone,Produto,Tamanho,Quantidade,Preço Unit.,Subtotal,Total Pedido,Status";
+  const header = "Pedido;Data;Cliente;Telefone;Produto;Tamanho;Quantidade;Preço Unit.;Subtotal;Total Pedido;Status;Pagamento";
   const rows = orders.flatMap((order) =>
     order.items.map((item) =>
       [
@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
         (item.price * item.quantity).toFixed(2).replace(".", ","),
         order.total.toFixed(2).replace(".", ","),
         order.status,
+        order.paymentStatus,
       ].join(";")
     )
   );

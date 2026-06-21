@@ -61,8 +61,13 @@ export function CartDrawer() {
     });
 
     if (res.ok) {
+      const data = await res.json();
       clearCart();
-      setStep("success");
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        setStep("success");
+      }
     } else {
       setError("Erro ao enviar pedido. Tente novamente.");
     }

@@ -25,6 +25,8 @@ model Order {
   customerName  String
   customerPhone String
   status        String      @default("pendente")
+  paymentStatus String      @default("pendente")
+  paymentId     String?
   total         Float
   createdAt     DateTime    @default(now())
   items         OrderItem[]

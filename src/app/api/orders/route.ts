@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { preference } from "@/lib/mercadopago";
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -44,5 +45,34 @@ export async function POST(request: NextRequest) {
     include: { items: true },
   });
 
-  return NextResponse.json(order, { status: 201 });
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+  const pref = await preference.create({
+    body: {
+      items: order.items.map((item) => ({
+        id: item.id,
+        title: `${item.name} - Tam: ${item.size}`,
+        quantity: item.quantity,
+        unit_price: item.price,
+        currency_id: "BRL",
+      })),
+      payer: {
+        name: customerName,
+        phone: { number: customerPhone },
+      },
+      external_reference: order.id,
+      back_urls: {
+        success: `${appUrl}/pedido/sucesso?order=${order.id}`,
+        failure: `${appUrl}/pedido/falha?order=${order.id}`,
+        pending: `${appUrl}/pedido/pendente?order=${order.id}`,
+      },
+      auto_return: "approved",
+      notification_url: `${appUrl}/api/webhooks/mercadopago`,
+    },
+  });
+
+  return NextResponse.json({
+    orderId: order.id,
+    checkoutUrl: pref.init_point,
+  }, { status: 201 });
 }

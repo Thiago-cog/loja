@@ -17,6 +17,8 @@ type Order = {
   customerName: string;
   customerPhone: string;
   status: string;
+  paymentStatus: string;
+  paymentId: string | null;
   total: number;
   createdAt: string;
   items: OrderItem[];
@@ -143,6 +145,13 @@ export default function OrdersPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4 flex-shrink-0">
+                  <span className={`text-xs px-2.5 py-1 rounded-sm font-medium ${
+                    order.paymentStatus === "aprovado" ? "bg-green-100 text-green-700"
+                      : order.paymentStatus === "rejeitado" ? "bg-red-100 text-red-700"
+                      : "bg-gray-100 text-gray-600"
+                  }`}>
+                    Pag: {order.paymentStatus}
+                  </span>
                   <span className={`text-xs px-2.5 py-1 rounded-sm font-medium ${getStatusStyle(order.status)}`}>
                     {STATUS_OPTIONS.find((s) => s.value === order.status)?.label ?? order.status}
                   </span>

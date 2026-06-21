@@ -201,8 +201,26 @@ export default function OrdersPage() {
                       </a>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
-                    <span className="text-xs text-gray-500 mr-2">Status:</span>
+                  <div className="flex items-center flex-wrap gap-2 pt-3 border-t border-gray-100">
+                    <button
+                      onClick={async () => {
+                        const res = await fetch(`/api/admin/orders/${order.id}/sync`, { method: "POST" });
+                        if (res.ok) {
+                          const updated = await res.json();
+                          setOrders((prev) =>
+                            prev.map((o) => (o.id === order.id ? updated : o))
+                          );
+                        } else {
+                          const data = await res.json();
+                          alert(data.error || "Erro ao sincronizar");
+                        }
+                      }}
+                      className="text-xs px-3 py-1.5 rounded-sm bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer"
+                    >
+                      Sincronizar pagamento
+                    </button>
+                    <span className="text-xs text-gray-300">|</span>
+                    <span className="text-xs text-gray-500">Status:</span>
                     {STATUS_OPTIONS.map((s) => (
                       <button
                         key={s.value}

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Product" ADD COLUMN "sizes" TEXT NOT NULL DEFAULT 'PP,P,M,G,GG,XG';

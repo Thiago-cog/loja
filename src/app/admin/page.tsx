@@ -18,15 +18,32 @@ type Product = {
   active: boolean;
 };
 
-const emptyForm = { name: "", description: "", price: "", imageUrl: "", images: "", sizes: "", models: "" };
+type ModelData = { name: string; sizes: string };
+
+function parseModels(raw: string): ModelData[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch { /* not JSON, ignore */ }
+  return [];
+}
+
+const emptyForm = { name: "", description: "", price: "", imageUrl: "", images: "", sizes: "", modelNames: "" };
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [modelSizes, setModelSizes] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const router = useRouter();
+
+  const modelNames = form.modelNames
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   const fetchProducts = useCallback(async () => {
     const res = await fetch("/api/admin/products");
@@ -61,17 +78,27 @@ export default function AdminDashboard() {
       : "/api/admin/products";
     const method = editingId ? "PUT" : "POST";
 
+    const modelsJson = modelNames.length > 0
+      ? JSON.stringify(modelNames.map((n) => ({ name: n, sizes: modelSizes[n] || "" })))
+      : "";
+
     const res = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...form,
+        name: form.name,
+        description: form.description,
         price: parseFloat(form.price),
+        imageUrl: form.imageUrl,
+        images: form.images,
+        sizes: modelNames.length > 0 ? "" : form.sizes,
+        models: modelsJson,
       }),
     });
 
     if (res.ok) {
       setForm(emptyForm);
+      setModelSizes({});
       setEditingId(null);
       await fetchProducts();
     }
@@ -95,6 +122,11 @@ export default function AdminDashboard() {
   }
 
   function handleEdit(product: Product) {
+    const parsed = parseModels(product.models);
+    const names = parsed.map((m) => m.name);
+    const sizesMap: Record<string, string> = {};
+    parsed.forEach((m) => { sizesMap[m.name] = m.sizes; });
+
     setForm({
       name: product.name,
       description: product.description,
@@ -102,8 +134,9 @@ export default function AdminDashboard() {
       imageUrl: product.imageUrl,
       images: product.images,
       sizes: product.sizes,
-      models: product.models,
+      modelNames: names.join(", "),
     });
+    setModelSizes(sizesMap);
     setEditingId(product.id);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -231,7 +264,37 @@ export default function AdminDashboard() {
               placeholder={"https://exemplo.com/foto2.jpg\nhttps://exemplo.com/foto3.jpg"}
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="modelNames" className="block text-sm font-medium text-gray-700 mb-1">
+              Modelos (separados por vírgula, opcional — ex: Adulto, Infantil)
+            </label>
+            <input
+              id="modelNames"
+              type="text"
+              value={form.modelNames}
+              onChange={(e) => setForm({ ...form, modelNames: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+              placeholder="Baby Look, T-Shirt"
+            />
+          </div>
+          {modelNames.length > 0 ? (
+            <div className="space-y-3 pl-4 border-l-2 border-pink-200">
+              {modelNames.map((modelName) => (
+                <div key={modelName}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tamanhos para <span className="font-bold text-pink-600">{modelName}</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={modelSizes[modelName] || ""}
+                    onChange={(e) => setModelSizes({ ...modelSizes, [modelName]: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    placeholder="PP,P,M,G,GG,XG"
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
             <div>
               <label htmlFor="sizes" className="block text-sm font-medium text-gray-700 mb-1">
                 Tamanhos (separados por vírgula, opcional)
@@ -245,20 +308,7 @@ export default function AdminDashboard() {
                 placeholder="PP,P,M,G,GG,XG"
               />
             </div>
-            <div>
-              <label htmlFor="models" className="block text-sm font-medium text-gray-700 mb-1">
-                Modelos (separados por vírgula, opcional)
-              </label>
-              <input
-                id="models"
-                type="text"
-                value={form.models}
-                onChange={(e) => setForm({ ...form, models: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
-                placeholder="Baby Look,T-Shirt"
-              />
-            </div>
-          </div>
+          )}
           <div className="flex gap-3">
             <button
               type="submit"
@@ -276,6 +326,7 @@ export default function AdminDashboard() {
                 type="button"
                 onClick={() => {
                   setForm(emptyForm);
+                  setModelSizes({});
                   setEditingId(null);
                 }}
                 className="px-6 py-2.5 rounded-lg font-medium border border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer"

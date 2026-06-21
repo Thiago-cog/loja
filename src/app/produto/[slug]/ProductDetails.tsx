@@ -5,6 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/contexts/CartContext";
 
+type ModelOption = {
+  name: string;
+  sizes: string[];
+};
+
 type Props = {
   id: string;
   name: string;
@@ -13,7 +18,7 @@ type Props = {
   imageUrl: string;
   images: string[];
   sizes: string[];
-  models: string[];
+  models: ModelOption[];
 };
 
 export function ProductDetails({ id, name, description, price, imageUrl, images, sizes, models }: Props) {
@@ -28,6 +33,12 @@ export function ProductDetails({ id, name, description, price, imageUrl, images,
   const [isZooming, setIsZooming] = useState(false);
   const { addItem } = useCart();
 
+  const activeSizes = selectedModel
+    ? models.find((m) => m.name === selectedModel)?.sizes ?? []
+    : models.length > 0
+      ? []
+      : sizes;
+
   function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -39,12 +50,12 @@ export function ProductDetails({ id, name, description, price, imageUrl, images,
   }
 
   function handleAddToCart() {
-    if (sizes.length > 0 && !selectedSize) {
-      setError("Selecione um tamanho");
-      return;
-    }
     if (models.length > 0 && !selectedModel) {
       setError("Selecione um modelo");
+      return;
+    }
+    if (activeSizes.length > 0 && !selectedSize) {
+      setError("Selecione um tamanho");
       return;
     }
     setError("");
@@ -130,31 +141,32 @@ export function ProductDetails({ id, name, description, price, imageUrl, images,
             <div className="flex flex-wrap gap-2">
               {models.map((model) => (
                 <button
-                  key={model}
+                  key={model.name}
                   onClick={() => {
-                    setSelectedModel(model);
+                    setSelectedModel(model.name);
+                    setSelectedSize(null);
                     setError("");
                   }}
                   className={`min-w-[48px] h-11 px-3 border text-sm font-medium transition-all cursor-pointer ${
-                    selectedModel === model
+                    selectedModel === model.name
                       ? "border-black bg-black text-white"
                       : "border-gray-200 text-gray-700 hover:border-black"
                   }`}
                 >
-                  {model}
+                  {model.name}
                 </button>
               ))}
             </div>
           </div>
           )}
 
-          {sizes.length > 0 && (
+          {activeSizes.length > 0 && (
           <div className="mt-8">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
               Tamanho
             </h3>
             <div className="flex flex-wrap gap-2">
-              {sizes.map((size) => (
+              {activeSizes.map((size) => (
                 <button
                   key={size}
                   onClick={() => {

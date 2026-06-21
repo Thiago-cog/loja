@@ -6,6 +6,20 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 
+function parseModels(raw: string): { name: string; sizes: string[] }[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.map((m: { name: string; sizes?: string }) => ({
+        name: m.name,
+        sizes: m.sizes ? m.sizes.split(",").map((s: string) => s.trim()).filter(Boolean) : [],
+      }));
+    }
+  } catch { /* not JSON */ }
+  return [];
+}
+
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
 
@@ -25,7 +39,7 @@ export default async function ProductPage({ params }: Props) {
         imageUrl={product.imageUrl}
         images={product.images ? product.images.split("\n").map((s) => s.trim()).filter(Boolean) : []}
         sizes={product.sizes ? product.sizes.split(",").map((s) => s.trim()).filter(Boolean) : []}
-        models={product.models ? product.models.split(",").map((s) => s.trim()).filter(Boolean) : []}
+        models={parseModels(product.models)}
       />
     </div>
   );

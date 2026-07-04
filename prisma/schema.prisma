@@ -43,6 +43,7 @@ model Order {
   checkoutUrl   String?
   total         Float
   createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   items         OrderItem[]
 }
 

@@ -23,6 +23,7 @@ type Order = {
   checkoutUrl: string | null;
   total: number;
   createdAt: string;
+  updatedAt: string;
   items: OrderItem[];
 };
 
@@ -34,12 +35,34 @@ const STATUS_OPTIONS = [
   { value: "cancelado", label: "Cancelado", color: "bg-red-100 text-red-700" },
 ];
 
+const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+
+function relativeTime(dateStr: string, now: number): string {
+  const diffMs = now - new Date(dateStr).getTime();
+  const minutes = diffMs / (1000 * 60);
+  if (minutes < 1) return "agora mesmo";
+  if (minutes < 60) return `há ${Math.floor(minutes)}min`;
+  const hours = minutes / 60;
+  if (hours < 24) return `há ${Math.floor(hours)}h`;
+  const days = Math.floor(hours / 24);
+  return `há ${days} dia${days > 1 ? "s" : ""}`;
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState("");
+  const [search, setSearch] = useState("");
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [bulkSyncing, setBulkSyncing] = useState<{ current: number; total: number } | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const router = useRouter();
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,13 +89,63 @@ export default function OrdersPage() {
     );
   }
 
+  async function syncOne(orderId: string): Promise<boolean> {
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/sync`, { method: "POST" });
+      if (res.ok) {
+        const updated = await res.json();
+        setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
+        return true;
+      }
+      const data = await res.json();
+      alert(data.error || "Erro ao sincronizar");
+      return false;
+    } catch {
+      alert("Erro ao sincronizar");
+      return false;
+    }
+  }
+
+  async function handleSyncOne(orderId: string) {
+    setSyncingId(orderId);
+    await syncOne(orderId);
+    setSyncingId(null);
+  }
+
+  async function handleBulkSync() {
+    const pending = orders.filter(
+      (o) => o.paymentStatus === "pendente" && (o.paymentId || o.checkoutUrl)
+    );
+    if (pending.length === 0) {
+      alert("Nenhum pedido pendente para sincronizar.");
+      return;
+    }
+    setBulkSyncing({ current: 0, total: pending.length });
+    for (let i = 0; i < pending.length; i++) {
+      await syncOne(pending[i].id);
+      setBulkSyncing({ current: i + 1, total: pending.length });
+    }
+    setBulkSyncing(null);
+  }
+
   function getStatusStyle(status: string) {
     return STATUS_OPTIONS.find((s) => s.value === status)?.color ?? "bg-gray-100 text-gray-700";
   }
 
-  const filtered = filterStatus
-    ? orders.filter((o) => o.status === filterStatus)
-    : orders;
+  const filtered = orders.filter((o) => {
+    if (filterStatus && o.status !== filterStatus) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const matches =
+        o.customerName.toLowerCase().includes(q) ||
+        o.customerPhone.includes(q) ||
+        o.id.toLowerCase().includes(q);
+      if (!matches) return false;
+    }
+    return true;
+  });
+
+  const isBusy = bulkSyncing !== null;
 
   if (loading) {
     return (
@@ -84,7 +157,7 @@ export default function OrdersPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
         <div className="flex items-center gap-4">
           <Link href="/admin" className="text-gray-400 hover:text-black transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -93,12 +166,33 @@ export default function OrdersPage() {
           </Link>
           <h1 className="text-3xl font-bold">Pedidos</h1>
         </div>
-        <a
-          href={`/api/admin/orders/export${filterStatus ? `?status=${filterStatus}` : ""}`}
-          className="bg-black text-white px-5 py-2.5 text-xs font-bold uppercase tracking-wider hover:bg-gray-900 transition-colors"
-        >
-          Exportar CSV
-        </a>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleBulkSync}
+            disabled={isBusy}
+            className="bg-blue-600 text-white px-5 py-2.5 text-xs font-bold uppercase tracking-wider hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {bulkSyncing
+              ? `Sincronizando ${bulkSyncing.current}/${bulkSyncing.total}...`
+              : "Sincronizar todos pendentes"}
+          </button>
+          <a
+            href={`/api/admin/orders/export${filterStatus ? `?status=${filterStatus}` : ""}`}
+            className="bg-black text-white px-5 py-2.5 text-xs font-bold uppercase tracking-wider hover:bg-gray-900 transition-colors"
+          >
+            Exportar CSV
+          </a>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por nome, telefone ou nº do pedido..."
+          className="w-full sm:w-80 px-3 py-2 text-sm border border-gray-200 rounded-sm focus:outline-none focus:border-gray-400"
+        />
       </div>
 
       <div className="flex gap-2 mb-6 flex-wrap">
@@ -132,114 +226,122 @@ export default function OrdersPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((order) => (
-            <div key={order.id} className="bg-white border border-gray-200 rounded-sm">
-              <button
-                onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
-                className="w-full px-5 py-4 flex items-center justify-between text-left cursor-pointer hover:bg-gray-50"
-              >
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm truncate">{order.customerName}</p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(order.createdAt).toLocaleDateString("pt-BR")} — {order.customerPhone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 flex-shrink-0">
-                  <span className={`text-xs px-2.5 py-1 rounded-sm font-medium ${
-                    order.paymentStatus === "aprovado" ? "bg-green-100 text-green-700"
-                      : order.paymentStatus === "rejeitado" ? "bg-red-100 text-red-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}>
-                    Pag: {order.paymentStatus}
-                  </span>
-                  <span className={`text-xs px-2.5 py-1 rounded-sm font-medium ${getStatusStyle(order.status)}`}>
-                    {STATUS_OPTIONS.find((s) => s.value === order.status)?.label ?? order.status}
-                  </span>
-                  <span className="text-sm font-bold">R$ {order.total.toFixed(2)}</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 text-gray-400 transition-transform ${expandedId === order.id ? "rotate-180" : ""}`}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                  </svg>
-                </div>
-              </button>
+          {filtered.map((order) => {
+            const isStale =
+              order.paymentStatus === "pendente" &&
+              now - new Date(order.createdAt).getTime() > STALE_THRESHOLD_MS;
+            const isSyncingThis = syncingId === order.id;
 
-              {expandedId === order.id && (
-                <div className="border-t border-gray-100 px-5 py-4">
-                  <div className="space-y-2 mb-4">
-                    {order.items.map((item) => (
-                      <div key={item.id} className="flex justify-between text-sm">
-                        <span className="text-gray-600">
-                          {item.quantity}x {item.name}{item.model ? ` - ${item.model}` : ""} — Tam: {item.size}
-                        </span>
-                        <span className="font-medium">
-                          R$ {(item.price * item.quantity).toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  {order.checkoutUrl && order.paymentStatus === "pendente" && (
-                    <div className="flex items-center gap-2 pt-3 border-t border-gray-100 mb-3">
-                      <span className="text-xs text-gray-500 mr-1">Link de pagamento:</span>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(order.checkoutUrl!);
-                          alert("Link copiado!");
-                        }}
-                        className="text-xs px-3 py-1.5 rounded-sm bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
-                      >
-                        Copiar link
-                      </button>
-                      <a
-                        href={`https://wa.me/55${order.customerPhone}?text=${encodeURIComponent(
-                          `Olá ${order.customerName}! Segue o link para pagamento do seu pedido na Alive Store (R$ ${order.total.toFixed(2)}):\n${order.checkoutUrl}`
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs px-3 py-1.5 rounded-sm bg-green-100 text-green-700 hover:bg-green-200"
-                      >
-                        Enviar via WhatsApp
-                      </a>
+            return (
+              <div key={order.id} className="bg-white border border-gray-200 rounded-sm">
+                <button
+                  onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
+                  className="w-full px-5 py-4 flex items-center justify-between text-left cursor-pointer hover:bg-gray-50"
+                >
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{order.customerName}</p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(order.createdAt).toLocaleDateString("pt-BR")} — {order.customerPhone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}
+                      </p>
                     </div>
-                  )}
-                  <div className="flex items-center flex-wrap gap-2 pt-3 border-t border-gray-100">
-                    <button
-                      onClick={async () => {
-                        const res = await fetch(`/api/admin/orders/${order.id}/sync`, { method: "POST" });
-                        if (res.ok) {
-                          const updated = await res.json();
-                          setOrders((prev) =>
-                            prev.map((o) => (o.id === order.id ? updated : o))
-                          );
-                        } else {
-                          const data = await res.json();
-                          alert(data.error || "Erro ao sincronizar");
-                        }
-                      }}
-                      className="text-xs px-3 py-1.5 rounded-sm bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer"
-                    >
-                      Sincronizar pagamento
-                    </button>
-                    <span className="text-xs text-gray-300">|</span>
-                    <span className="text-xs text-gray-500">Status:</span>
-                    {STATUS_OPTIONS.map((s) => (
-                      <button
-                        key={s.value}
-                        onClick={() => handleStatusChange(order.id, s.value)}
-                        className={`text-xs px-3 py-1.5 rounded-sm cursor-pointer transition-colors ${
-                          order.status === s.value
-                            ? s.color + " font-bold"
-                            : "bg-gray-50 text-gray-400 hover:bg-gray-100"
-                        }`}
+                    {isStale && (
+                      <span
+                        className="text-xs px-2.5 py-1 rounded-sm font-medium bg-red-50 text-red-500 flex-shrink-0"
+                        title="Pagamento pendente há muito tempo"
                       >
-                        {s.label}
-                      </button>
-                    ))}
+                        pendente {relativeTime(order.createdAt, now)}
+                      </span>
+                    )}
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
+                  <div className="flex items-center gap-4 flex-shrink-0">
+                    <span className={`text-xs px-2.5 py-1 rounded-sm font-medium ${
+                      order.paymentStatus === "aprovado" ? "bg-green-100 text-green-700"
+                        : order.paymentStatus === "rejeitado" ? "bg-red-100 text-red-700"
+                        : "bg-gray-100 text-gray-600"
+                    }`}>
+                      Pag: {order.paymentStatus}
+                    </span>
+                    <span className={`text-xs px-2.5 py-1 rounded-sm font-medium ${getStatusStyle(order.status)}`}>
+                      {STATUS_OPTIONS.find((s) => s.value === order.status)?.label ?? order.status}
+                    </span>
+                    <span className="text-sm font-bold">R$ {order.total.toFixed(2)}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 text-gray-400 transition-transform ${expandedId === order.id ? "rotate-180" : ""}`}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                    </svg>
+                  </div>
+                </button>
+
+                {expandedId === order.id && (
+                  <div className="border-t border-gray-100 px-5 py-4">
+                    <div className="space-y-2 mb-4">
+                      {order.items.map((item) => (
+                        <div key={item.id} className="flex justify-between text-sm">
+                          <span className="text-gray-600">
+                            {item.quantity}x {item.name}{item.model ? ` - ${item.model}` : ""} — Tam: {item.size}
+                          </span>
+                          <span className="font-medium">
+                            R$ {(item.price * item.quantity).toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {order.checkoutUrl && order.paymentStatus === "pendente" && (
+                      <div className="flex items-center gap-2 pt-3 border-t border-gray-100 mb-3">
+                        <span className="text-xs text-gray-500 mr-1">Link de pagamento:</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(order.checkoutUrl!);
+                            alert("Link copiado!");
+                          }}
+                          className="text-xs px-3 py-1.5 rounded-sm bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
+                        >
+                          Copiar link
+                        </button>
+                        <a
+                          href={`https://wa.me/55${order.customerPhone}?text=${encodeURIComponent(
+                            `Olá ${order.customerName}! Segue o link para pagamento do seu pedido na Alive Store (R$ ${order.total.toFixed(2)}):\n${order.checkoutUrl}`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs px-3 py-1.5 rounded-sm bg-green-100 text-green-700 hover:bg-green-200"
+                        >
+                          Enviar via WhatsApp
+                        </a>
+                      </div>
+                    )}
+                    <div className="flex items-center flex-wrap gap-2 pt-3 border-t border-gray-100">
+                      <button
+                        onClick={() => handleSyncOne(order.id)}
+                        disabled={isSyncingThis || isBusy}
+                        className="text-xs px-3 py-1.5 rounded-sm bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isSyncingThis ? "Sincronizando..." : "Sincronizar pagamento"}
+                      </button>
+                      <span className="text-xs text-gray-400">
+                        atualizado {relativeTime(order.updatedAt, now)}
+                      </span>
+                      <span className="text-xs text-gray-300">|</span>
+                      <span className="text-xs text-gray-500">Status:</span>
+                      {STATUS_OPTIONS.map((s) => (
+                        <button
+                          key={s.value}
+                          onClick={() => handleStatusChange(order.id, s.value)}
+                          className={`text-xs px-3 py-1.5 rounded-sm cursor-pointer transition-colors ${
+                            order.status === s.value
+                              ? s.color + " font-bold"
+                              : "bg-gray-50 text-gray-400 hover:bg-gray-100"
+                          }`}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -193,7 +193,7 @@ export default function OrdersPage() {
             href={`/api/admin/orders/export${filterStatus ? `?status=${filterStatus}` : ""}`}
             className="bg-black text-white px-5 py-2.5 text-xs font-bold uppercase tracking-wider hover:bg-gray-900 transition-colors"
           >
-            Exportar CSV
+            Exportar Excel
           </a>
         </div>
       </div>

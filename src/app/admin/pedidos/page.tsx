@@ -89,20 +89,22 @@ export default function OrdersPage() {
     );
   }
 
-  async function syncOne(orderId: string): Promise<boolean> {
+  async function syncOne(orderId: string, opts?: { silent?: boolean }): Promise<{ ok: boolean; error?: string }> {
     try {
       const res = await fetch(`/api/admin/orders/${orderId}/sync`, { method: "POST" });
       if (res.ok) {
         const updated = await res.json();
         setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
-        return true;
+        return { ok: true };
       }
       const data = await res.json();
-      alert(data.error || "Erro ao sincronizar");
-      return false;
+      const message = data.error || "Erro ao sincronizar";
+      if (!opts?.silent) alert(message);
+      return { ok: false, error: message };
     } catch {
-      alert("Erro ao sincronizar");
-      return false;
+      const message = "Erro ao sincronizar";
+      if (!opts?.silent) alert(message);
+      return { ok: false, error: message };
     }
   }
 
@@ -121,11 +123,22 @@ export default function OrdersPage() {
       return;
     }
     setBulkSyncing({ current: 0, total: pending.length });
+    let updated = 0;
+    let notFound = 0;
+    let errors = 0;
     for (let i = 0; i < pending.length; i++) {
-      await syncOne(pending[i].id);
+      const result = await syncOne(pending[i].id, { silent: true });
+      if (result.ok) updated++;
+      else if (result.error?.includes("Nenhum pagamento encontrado")) notFound++;
+      else errors++;
       setBulkSyncing({ current: i + 1, total: pending.length });
     }
     setBulkSyncing(null);
+
+    const summary = [`${updated} sincronizado${updated !== 1 ? "s" : ""}`];
+    if (notFound > 0) summary.push(`${notFound} sem pagamento encontrado`);
+    if (errors > 0) summary.push(`${errors} com erro`);
+    alert(`Sincronização concluída: ${summary.join(", ")}.`);
   }
 
   function getStatusStyle(status: string) {

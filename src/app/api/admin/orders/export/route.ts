@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { describePaymentDetail } from "@/lib/paymentDetail";
 
 const STATUS_COLORS: Record<string, { fill: string; font: string }> = {
   pendente: { fill: "FFFEF9C3", font: "FFA16207" },
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest) {
     { header: "Total Pedido", key: "orderTotal", width: 14 },
     { header: "Status", key: "status", width: 14 },
     { header: "Pagamento", key: "paymentStatus", width: 14 },
+    { header: "Motivo rejeição", key: "paymentDetail", width: 32 },
   ];
 
   const headerRow = sheet.getRow(1);
@@ -62,7 +64,7 @@ export async function GET(request: NextRequest) {
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF000000" } };
     cell.alignment = { vertical: "middle", horizontal: "center" };
   });
-  sheet.autoFilter = { from: "A1", to: "M1" };
+  sheet.autoFilter = { from: "A1", to: "N1" };
 
   for (const order of orders) {
     for (const item of order.items) {
@@ -80,6 +82,7 @@ export async function GET(request: NextRequest) {
         orderTotal: order.total,
         status: order.status,
         paymentStatus: order.paymentStatus,
+        paymentDetail: order.paymentStatus === "rejeitado" ? describePaymentDetail(order.paymentDetail) ?? "" : "",
       });
 
       row.getCell("date").numFmt = "dd/mm/yyyy";

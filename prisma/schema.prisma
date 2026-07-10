@@ -39,6 +39,7 @@ model Order {
   customerPhone String
   status        String      @default("pendente")
   paymentStatus String      @default("pendente")
+  paymentDetail String?
   paymentId     String?
   checkoutUrl   String?
   total         Float

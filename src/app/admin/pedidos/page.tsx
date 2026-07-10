@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { describePaymentDetail } from "@/lib/paymentDetail";
 
 type OrderItem = {
   id: string;
@@ -19,6 +20,7 @@ type Order = {
   customerPhone: string;
   status: string;
   paymentStatus: string;
+  paymentDetail: string | null;
   paymentId: string | null;
   checkoutUrl: string | null;
   total: number;
@@ -287,6 +289,14 @@ export default function OrdersPage() {
 
                 {expandedId === order.id && (
                   <div className="border-t border-gray-100 px-5 py-4">
+                    {order.paymentStatus === "rejeitado" && describePaymentDetail(order.paymentDetail) && (
+                      <div className="mb-4 flex items-start gap-2 bg-red-50 text-red-700 text-xs px-3 py-2 rounded-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 flex-shrink-0 mt-px">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+                        </svg>
+                        <span><strong>Motivo da rejeição:</strong> {describePaymentDetail(order.paymentDetail)}</span>
+                      </div>
+                    )}
                     <div className="space-y-2 mb-4">
                       {order.items.map((item) => (
                         <div key={item.id} className="flex justify-between text-sm">

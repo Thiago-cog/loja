@@ -29,12 +29,18 @@ async function applyPaymentToOrder(
   orderId: string,
   mpPaymentId: string | number,
   mpStatus: string | undefined,
+  mpStatusDetail: string | undefined,
   currentOrderStatus: string
 ) {
   const { paymentStatus, orderStatus } = mapMercadoPagoStatus(mpStatus, currentOrderStatus);
   return prisma.order.update({
     where: { id: orderId },
-    data: { paymentId: String(mpPaymentId), paymentStatus, status: orderStatus },
+    data: {
+      paymentId: String(mpPaymentId),
+      paymentStatus,
+      status: orderStatus,
+      paymentDetail: mpStatusDetail ?? null,
+    },
     include: { items: true },
   });
 }
@@ -62,7 +68,7 @@ export async function syncOrderById(orderId: string): Promise<SyncResult> {
     return { ok: false, reason: "no_payment_found" };
   }
 
-  const updated = await applyPaymentToOrder(orderId, latestPayment.id!, latestPayment.status, order.status);
+  const updated = await applyPaymentToOrder(orderId, latestPayment.id!, latestPayment.status, latestPayment.status_detail, order.status);
   return { ok: true, order: updated };
 }
 
@@ -82,6 +88,6 @@ export async function syncOrderByPaymentId(mpPaymentId: string | number): Promis
     return { ok: false, reason: "order_not_found" };
   }
 
-  const updated = await applyPaymentToOrder(orderId, mpPaymentId, paymentData.status, order.status);
+  const updated = await applyPaymentToOrder(orderId, mpPaymentId, paymentData.status, paymentData.status_detail, order.status);
   return { ok: true, order: updated };
 }

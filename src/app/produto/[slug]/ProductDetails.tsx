@@ -19,9 +19,10 @@ type Props = {
   images: string[];
   sizes: string[];
   models: ModelOption[];
+  available?: boolean;
 };
 
-export function ProductDetails({ id, name, description, price, imageUrl, images, sizes, models }: Props) {
+export function ProductDetails({ id, name, description, price, imageUrl, images, sizes, models, available = true }: Props) {
   const allImages = [imageUrl, ...images];
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export function ProductDetails({ id, name, description, price, imageUrl, images,
   }
 
   function handleAddToCart() {
+    if (!available) return;
     if (models.length > 0 && !selectedModel) {
       setError("Selecione um modelo");
       return;
@@ -213,13 +215,20 @@ export function ProductDetails({ id, name, description, price, imageUrl, images,
 
           <button
             onClick={handleAddToCart}
-            className={`mt-8 w-full py-4 text-sm font-bold uppercase tracking-wider transition-all cursor-pointer ${
-              added
-                ? "bg-green-600 text-white"
-                : "bg-black text-white hover:bg-gray-900"
+            disabled={!available}
+            className={`mt-8 w-full py-4 text-sm font-bold uppercase tracking-wider transition-all ${
+              !available
+                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                : added
+                  ? "bg-green-600 text-white cursor-pointer"
+                  : "bg-black text-white hover:bg-gray-900 cursor-pointer"
             }`}
           >
-            {added ? "Adicionado ao carrinho!" : "Adicionar ao carrinho"}
+            {!available
+              ? "Indisponível"
+              : added
+                ? "Adicionado ao carrinho!"
+                : "Adicionar ao carrinho"}
           </button>
         </div>
       </div>

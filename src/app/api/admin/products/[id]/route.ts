@@ -13,7 +13,7 @@ export async function PUT(
 
   const { id } = await params;
   const body = await request.json();
-  const { name, description, price, imageUrl, images, sizes, models, active } = body;
+  const { name, description, price, imageUrl, images, sizes, models, active, available } = body;
 
   let slugUpdate = {};
   if (name !== undefined) {
@@ -37,6 +37,7 @@ export async function PUT(
       ...(sizes !== undefined && { sizes }),
       ...(models !== undefined && { models }),
       ...(active !== undefined && { active }),
+      ...(available !== undefined && { available }),
     },
   });
 

@@ -40,6 +40,7 @@ export default async function ProductPage({ params }: Props) {
         images={product.images ? product.images.split("\n").map((s) => s.trim()).filter(Boolean) : []}
         sizes={product.sizes ? product.sizes.split(",").map((s) => s.trim()).filter(Boolean) : []}
         models={parseModels(product.models)}
+        available={product.available}
       />
     </div>
   );

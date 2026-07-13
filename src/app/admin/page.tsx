@@ -16,6 +16,7 @@ type Product = {
   models: string;
   position: number;
   active: boolean;
+  available: boolean;
 };
 
 type ModelData = { name: string; sizes: string };
@@ -117,6 +118,15 @@ export default function AdminDashboard() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ active: !product.active }),
+    });
+    await fetchProducts();
+  }
+
+  async function handleToggleAvailable(product: Product) {
+    await fetch(`/api/admin/products/${product.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ available: !product.available }),
     });
     await fetchProducts();
   }
@@ -391,6 +401,11 @@ export default function AdminDashboard() {
                         Inativo
                       </span>
                     )}
+                    {!product.available && (
+                      <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+                        Indisponível
+                      </span>
+                    )}
                   </div>
                   <p className="text-pink-600 font-semibold">
                     R$ {product.price.toFixed(2)}
@@ -406,6 +421,16 @@ export default function AdminDashboard() {
                     }`}
                   >
                     {product.active ? "Desativar" : "Ativar"}
+                  </button>
+                  <button
+                    onClick={() => handleToggleAvailable(product)}
+                    className={`text-xs px-3 py-1.5 rounded-lg cursor-pointer ${
+                      product.available
+                        ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                        : "bg-green-100 text-green-700 hover:bg-green-200"
+                    }`}
+                  >
+                    {product.available ? "Indisponível" : "Disponível"}
                   </button>
                   <button
                     onClick={() => handleEdit(product)}
